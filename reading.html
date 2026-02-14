@@ -642,9 +642,25 @@
       if (poolLoadPromise) return poolLoadPromise;
       poolLoadPromise = (async () => {
         try{
-          poolData = clonePoolData(defaultPoolData);
+          const response = await fetch('data/word-pools_jipjanneke.json', { cache: 'no-store' });
+          if (!response.ok){
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const incoming = await response.json();
+          poolData = mergePoolData({
+            words: {},
+            expressions: {},
+            sentences: {}
+          }, incoming);
+          if (
+            !Object.keys(poolData.words || {}).length &&
+            !Object.keys(poolData.expressions || {}).length &&
+            !Object.keys(poolData.sentences || {}).length
+          ){
+            throw new Error('No usable pool data in word-pools_jipjanneke.json');
+          }
         } catch (error) {
-          console.warn('Using bundled pools:', error);
+          console.warn('Using bundled pools (fallback):', error);
           poolData = clonePoolData(defaultPoolData);
         } finally {
           poolDataReady = true;
