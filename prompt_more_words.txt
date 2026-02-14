@@ -1,0 +1,34 @@
+You are assisting with enhancements to the reading exercise app defined in `reading.html`. Right now the page embeds the UI, language selector, and the data arrays that feed the exercise tiles.
+
+Current behavior to keep:
+- Tiles trigger `startWordSequence` to display randomly sampled items (words, expressions, sentences) in either English (`en-US`) or Dutch (`nl-NL`).
+- Pools for each content type are hard-coded arrays inside the `<script>` tag (`wordPools`, `expressionPools`, `sentencePools`).
+- For every run, the code clones the relevant pool, randomly splices entries to avoid repeats, and sequences them with Web Speech API playback.
+
+Goals for the change:
+1. Make the pools for words, expressions, and sentences much larger for both English and Dutch without bloating `reading.html`.
+2. Allow non-developers (e.g., teachers) to extend the pools without editing HTML/JS directly.
+3. Support metadata (difficulty, theme, part of speech, etc.) so future features can filter or mix content intelligently.
+
+Key requirements:
+- Move the pool data into one or more structured JSON (or JS module) files, e.g., `data/word-pools.json`. Structure example:
+  ```json
+  {
+    "words": { "en-US": [ { "text": "forest", "tags": ["nature","easy"] }, ... ] },
+    "expressions": { "nl-NL": [ { "text": "Volg je hart", "tags": ["motivation"] }, ... ] }
+  }
+  ```
+- On page load, fetch and cache the JSON. Preserve current fallback behavior (if locale missing, fall back to English words).
+- Update `pickWordSet` / `pickFromPool` (or replacements) to work with the new data objects.
+- Maintain accessibility behavior (screen toggling, speech synthesis, dwell timing).
+
+Stretch/optional (if time allows, but describe in comments/TODOs even if not implemented):
+- Build a lightweight admin/editor view (maybe behind `tile.edit`) that reads the JSON, shows lists, and lets authorized users add/edit/delete entries with validation and deduplication.
+- Provide scripts or instructions to convert spreadsheet data into the JSON structure so large batches can be imported.
+- Consider localization of metadata (e.g., translated tags) and support for additional locales.
+
+Deliverables:
+- Updated `reading.html` (or modularized JS) that loads external pool data and uses it in the existing UI.
+- New JSON data files populated with expanded word/expression/sentence lists for both English and Dutch.
+- Clear documentation (README update or inline comments) describing the data format and how to extend it.
+- Do not change the current look and feel of the UI. Keep the same colors, formats, fonts and locations. Only add new things listed before. Do not remove anything visual.

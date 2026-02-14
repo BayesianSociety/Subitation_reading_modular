@@ -1,0 +1,14 @@
+› Explain, but do not change anything. How would you make it a standalone app, so that the user can just press an
+  icon and fire up this app.
+
+
+• - Wrap it as a lightweight Progressive Web App: add a web app manifest (manifest.json) describing the name,
+    icon set, start URL, and display mode, plus a tiny service worker that precaches reading.html, data/word-
+    pools.json, and assets. Once served over HTTPS (or localhost), a browser can “Install app,” creating an icon
+    that launches the standalone view.
+  - If you expect offline use, extend the service worker’s cache logic to fall back to the bundled pools when
+    data/word-pools.json isn’t reachable, so tapping the icon still opens the experience without network.
+  - Package the same web assets inside a native shell if needed: tools like Capacitor (for iOS/Android) or
+    Electron/Tauri (for desktop) embed a WebView plus an app icon, so tapping the icon launches the HTML/JS
+    exactly as-is while giving you native distribution options.
+	

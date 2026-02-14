@@ -1,0 +1,68 @@
+How I want it to work !
+
+Prompt for Subitation Czytanie
+
+You can only change the file reading.html, no other files can be changed.
+Prepare an algorithm to generate 3 random words in English and separately in Dutch. Use the same language selection menu, format, location and the same background as in reading.html.
+Display those 3 words one after another, clearing screen after each display.
+Plug it in to the tile named "3 words" in the reading.html
+Use subitation_plus.html file to analyze the mechanizm of display of numbers, font size and color, position on the screen, background colors, speech and duration and dwell of the text on the screen, and use it for the new mechanizm of generating 3 random words.
+Use the same time display dwell as in subitation_plus.
+In the fuction responsible for duration of display of text, include parameters to be able to change duration depending on the number of characters in the word.
+Make program for the tile "3 words" first.
+Do the same for the Dutch language
+
+
+Context and Persona
+
+Persona: You are a specialized Senior Frontend Developer, expert in creating highly performant, accessible (A11y compliant) educational web applications. You have full visibility into the provided files and understand that the goal of this exercise is to enhance reading speed and comprehension through controlled visual stimulus.
+
+Goal: Implement the new "3-Word Reading Exercise" feature exclusively within reading.html file. The feature must replicate the language selection, full-screen display mechanics, and acoustic feedback patterns observed in subitation_plus.html, ensuring seamless integration and visual consistency. It must be in English and Dutch.
+
+I. Development Constraints and Analysis
+Modification Constraint: ONLY the reading.html file is permitted for modification. No other files may be changed, referenced, or created.
+Styling Inheritance (from reading.html):
+The body radial background gradient must be maintained.
+The #languageMenu must remain fixed, positioned, and functional for language selection.
+Mechanics Inheritance (from subitation_plus.html):
+Full-Screen Display: The new exercise must use a dedicated, full-screen section (e.g., <section id="wordDisplayScreen">) that overlays the index view, similar to subitation_plus.html's #additionScreen.
+Typography: The displayed words must adopt the large, high-impact font styling of the #expression element in subitation_plus.html (e.g., font-size: clamp(3rem, 18vmin, 12rem); font-weight: 800;).
+Speech and Language: The logic must utilize the window.speechSynthesis API, dynamically selecting the correct voice and language (en-US or nl-NL) based on the current value of the #languageSelect element in reading.html.
+
+II. Functional and Technical Requirements
+
+A. Trigger and Transition
+Activation: Modify the event listener for the tile with data-choice="tile.3words.value" to call a new function, startWordSequence(), instead of just announcing the choice.
+View Management: startWordSequence() must hide the main index content (main element) and show the new full-screen #wordDisplayScreen.
+
+B. The Dynamic Sequence Algorithm
+The sequence must consist of exactly three words in the selected language.
+Word Selection: Randomly select three common, non-specialized dictionary words (aiming for vocabulary common at A2/B1 level).
+Display Loop: The program must loop through the three selected words, performing the following steps:
+Display: Show the word prominently in the center of the #wordDisplayScreen.
+Speak: Use speechSynthesis to vocalize the word immediately.
+Dwell/Duration Logic: Pause execution for a dynamic Dwell Time based on word length. This logic must be encapsulated in a pure JavaScript function named calculateWordDwellMs(word), defined by the formula:
+
+$$\text{DwellTime (ms)} = \text{BASE\_TIME} + (\text{Word.length} \times \text{MS\_PER\_CHARACTER})$$
+
+Where:
+
+BASE_TIME is set to 400 ms (minimum perception time).
+
+MS\_PER\_CHARACTER is set to 120 ms (for pacing control).
+
+Clear Screen (ISI): After the Dwell Time, clear the displayed word (e.g., set inner HTML to &nbsp;) and pause for a fixed Inter-Stimulus Interval (ISI) of 500 ms before proceeding to the next word or ending the sequence.
+
+C. Finalization
+
+After the third word's ISI is complete, the app must revert the view: hide #wordDisplayScreen and show the original main index view.
+Ensure that the language logic is duplicated and works correctly for both English (en-US) and Dutch (nl-NL) word generation and Text-to-Speech (TTS) voice selection.
+Summary of Technical Deliverables:
+New HTML structure for <section id="wordDisplayScreen"> added to reading.html.
+Necessary CSS to make #wordDisplayScreen full-screen and apply the inherited typography.
+New JavaScript function: calculateWordDwellMs(word).
+New JavaScript function: startWordSequence() containing the main loop, display, and speech logic.
+Modification to the 3-words tile click handler to call startWordSequence().
+
+
+you are an expert in IT. Summarize this video and pay attention to new skills which the author tries to present.
