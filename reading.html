@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Czytanie – kafelki wyboru</title>
@@ -833,16 +834,56 @@
              speechState.voices.find(v => v.lang && v.lang.toLowerCase().startsWith(key));
     }
 
+    function speakUtterance(text, lang, voice){
+      return new Promise((resolve) => {
+        if (!speech || !text){
+          resolve({ elapsedMs: 0, endedNaturally: true });
+          return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang;
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        if (voice) utterance.voice = voice;
+
+        let start = 0;
+        let settled = false;
+
+        const finish = (endedNaturally) => {
+          if (settled) return;
+          settled = true;
+          const end = performance.now();
+          resolve({ elapsedMs: start ? (end - start) : 0, endedNaturally });
+        };
+
+        utterance.onstart = () => { start = performance.now(); };
+        utterance.onend = () => finish(true);
+        utterance.onerror = () => finish(false);
+
+        speech.speak(utterance);
+      });
+    }
+
     async function speakWord(text, lang){
       if (!speech || !text) return;
       await ensureVoices();
-      speech.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang;
-      utterance.rate = lang === 'nl-NL' ? 1.25 : 1.4;
+
       const voice = pickVoice(lang);
-      if (voice) utterance.voice = voice;
-      speech.speak(utterance);
+      speech.cancel();
+      await sleep(30);
+
+      const targetMs = calculateWordDwellMs(text);
+      const startedAt = performance.now();
+      await speakUtterance(text, lang, voice);
+
+      const elapsed = performance.now() - startedAt;
+      const remaining = targetMs - elapsed;
+      if (remaining > 0) await sleep(remaining);
+
+      if (speech.speaking || speech.pending) speech.cancel();
     }
 
     async function startWordSequence({ items = 3, choiceKey = 'tile.3words.value', poolType = 'words' } = {}){
@@ -869,7 +910,6 @@
         for (const word of words){
           wordDisplay.textContent = word;
           await speakWord(word, lang);
-          await sleep(calculateWordDwellMs(word));
           wordDisplay.innerHTML = '&nbsp;';
           await sleep(WORD_ISI_MS);
         }

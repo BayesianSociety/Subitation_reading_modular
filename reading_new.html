@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Czytanie – kafelki wyboru</title>
+  <style>
+    :root{
+      --bg-start: #fdfefe;
+      --bg-end: #d7f2f0;
+      --tile-start: #f1619f;
+      --tile-end: #b046e0;
+      --tile-border: #ed7ab5;
+      --tile-shadow: #5f216f;
+      --tile-text: #ffffff;
+      --edit-border: #c6d1d3;
+      --edit-shadow: #9eb2b7;
+      --radius: 30px;
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      background:radial-gradient(circle at 20% 20%, var(--bg-start) 0%, var(--bg-end) 100%);
+      font-family: "Segoe UI", "Noto Sans", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color:#34102f;
+      display:grid;
+      place-items:center;
+    }
+
+    #languageMenu {
+      position: fixed;
+      top: 0.75rem;
+      right: 0.75rem;
+      z-index: 12;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.12);
+      padding: 0.6rem 0.8rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      min-width: 160px;
+    }
+    #languageMenu label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #111;
+    }
+    #languageSelect {
+      min-width: 160px;
+      padding: 0.55rem 0.75rem;
+      font: 600 1rem/1.2 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.16);
+      background: #fff;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    #languageSelect:focus-visible {
+      outline: 3px solid rgba(208,38,96,0.45);
+      outline-offset: 2px;
+    }
+    main{
+      width:min(960px, 94vw);
+      padding:32px 18px 48px;
+      text-align:center;
+    }
+
+    h1{
+      margin:0 0 28px;
+      font-size: clamp(28px, 3vw, 38px);
+      font-weight:700;
+      color:#622050;
+    }
+
+    .tiles{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));
+      gap:34px;
+      justify-items:center;
+    }
+
+    .tile{
+      --shadow-offset:18px;
+      width:210px;
+      height:170px;
+      border:none;
+      border-radius:var(--radius);
+      background:linear-gradient(135deg, var(--tile-start), var(--tile-end));
+      color:var(--tile-text);
+      font-size:24px;
+      font-weight:700;
+      text-transform:none;
+      cursor:pointer;
+      box-shadow: 0 var(--shadow-offset) 0 var(--tile-shadow), 0 calc(var(--shadow-offset) + 8px) 26px rgba(52,16,47,0.25);
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      gap:6px;
+      transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+      padding:0 12px;
+    }
+
+    .tile:focus-visible{
+      outline:4px solid rgba(255,255,255,0.75);
+      outline-offset:2px;
+    }
+
+    .tile:hover{ filter:brightness(1.05); }
+
+    .tile:active{
+      transform:translateY(6px);
+      box-shadow:0 8px 0 var(--tile-shadow), 0 16px 20px rgba(52,16,47,0.22);
+    }
+
+    .tile small{ font-size:18px; font-weight:500; }
+
+    .tile-number{ font-size:52px; }
+
+    .tile--edit{
+      background:#ffffff;
+      color:#5c6163;
+      box-shadow:0 14px 0 var(--edit-shadow), 0 22px 30px rgba(94,115,121,0.2);
+      border:3px solid var(--edit-border);
+    }
+
+    .tile--edit:hover{ filter:none; }
+    .tile--edit:active{
+      box-shadow:0 8px 0 var(--edit-shadow), 0 16px 22px rgba(94,115,121,0.18);
+    }
+
+    .selection{
+      margin-top:32px;
+      font-weight:600;
+      min-height:1.4em;
+      color:#4c2a40;
+    }
+
+    main[hidden]{
+      display:none;
+    }
+
+    #wordDisplayScreen{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:radial-gradient(circle at 20% 20%, var(--bg-start) 0%, var(--bg-end) 100%);
+      z-index:10;
+      padding:1.5rem;
+      text-align:center;
+    }
+
+    #wordDisplayScreen.active{
+      display:flex;
+    }
+
+    #wordDisplay{
+      font-size:clamp(3rem, 18vmin, 12rem);
+      font-weight:800;
+      color:#d109c8;
+      letter-spacing:0.015em;
+      line-height:1.05;
+      min-width:60vw;
+    }
+
+    @media (max-width:640px){
+      .tile{ width:200px; height:150px; }
+      .tile-number{ font-size:44px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="languageMenu">
+    <label id="pickerHint" for="languageSelect">Select language</label>
+    <select id="languageSelect">
+      <option value="en-US">English</option>
+      <option value="nl-NL">Nederlands</option>
+    </select>
+  </div>
+  <main role="main">
+    <h1 id="pageTitle" data-i18n="title">Czytanie</h1>
+    <section class="tiles" aria-label="Wybór ćwiczeń">
+      <button class="tile" data-choice="tile.3words.value" aria-label="3 wyrazy">
+        <span class="tile-number">3</span>
+        <small data-i18n="tile.3words.bottom">Wyrazy</small>
+      </button>
+      <button class="tile" data-choice="tile.expressions.value">
+        <span data-i18n="tile.expressions.label">Wyrażenia</span>
+      </button>
+      <button class="tile" data-choice="tile.customWords.value">
+        <span data-i18n="tile.customWords.label">Własne wyrazy</span>
+      </button>
+      <button class="tile" data-choice="tile.5words.value" aria-label="5 wyrazów">
+        <span class="tile-number">5</span>
+        <small data-i18n="tile.5words.bottom">Wyrazów</small>
+      </button>
+      <button class="tile" data-choice="tile.sentences.value">
+        <span data-i18n="tile.sentences.label">Zdania</span>
+      </button>
+      <button class="tile" data-choice="tile.customSentences.value">
+        <span data-i18n="tile.customSentences.label">Własne zdania</span>
+      </button>
+      <button class="tile tile--edit" data-choice="tile.edit.value">
+        <span data-i18n="tile.edit.label">Edycja</span>
+      </button>
+    </section>
+    <div class="selection" id="selection" aria-live="polite"></div>
+  </main>
+  <section id="wordDisplayScreen" aria-live="polite" aria-hidden="true">
+    <div id="wordDisplay">&nbsp;</div>
+  </section>
+
+  <script>
+    const selection = document.getElementById('selection');
+    const languageSelect = document.getElementById('languageSelect');
+    const titleEl = document.getElementById('pageTitle');
+    const mainEl = document.querySelector('main');
+    const wordDisplayScreen = document.getElementById('wordDisplayScreen');
+    const wordDisplay = document.getElementById('wordDisplay');
+    let lastChoiceKey = '';
+    let wordSequenceRunning = false;
+    const BASE_WORD_TIME = 400;
+    const MS_PER_CHARACTER = 120;
+    const WORD_ISI_MS = 500;
+
+    const translations = {
+      'en-US': {
+        title: 'Reading',
+        selectionPrefix: 'Selected',
+        'tile.3words.bottom': 'Words',
+        'tile.3words.value': '3 words',
+        'tile.expressions.label': 'Expressions',
+        'tile.expressions.value': 'Expressions',
+        'tile.customWords.label': 'Own words',
+        'tile.customWords.value': 'Own words',
+        'tile.5words.bottom': 'Words',
+        'tile.5words.value': '5 words',
+        'tile.sentences.label': 'Sentences',
+        'tile.sentences.value': 'Sentences',
+        'tile.customSentences.label': 'Own sentences',
+        'tile.customSentences.value': 'Own sentences',
+        'tile.edit.label': 'Editor',
+        'tile.edit.value': 'Editor'
+      },
+      'nl-NL': {
+        title: 'Lezen',
+        selectionPrefix: 'Geselecteerd',
+        'tile.3words.bottom': 'Woorden',
+        'tile.3words.value': '3 woorden',
+        'tile.expressions.label': 'Uitdrukkingen',
+        'tile.expressions.value': 'Uitdrukkingen',
+        'tile.customWords.label': 'Eigen woorden',
+        'tile.customWords.value': 'Eigen woorden',
+        'tile.5words.bottom': 'Woorden',
+        'tile.5words.value': '5 woorden',
+        'tile.sentences.label': 'Zinnen',
+        'tile.sentences.value': 'Zinnen',
+        'tile.customSentences.label': 'Eigen zinnen',
+        'tile.customSentences.value': 'Eigen zinnen',
+        'tile.edit.label': 'Bewerken',
+        'tile.edit.value': 'Bewerken'
+      }
+    };
+    /**
+     * Default pool data stays bundled with the page so exercises continue to
+     * work offline. A larger dataset can live in data/word-pools.json using the
+     * same shape (see prompt_more_words.txt for contributor guidance).
+     */
+    const defaultPoolData = {
+      words: {
+        'en-US': [
+          { text: 'forest', tags: ['nature', 'easy'] },
+          { text: 'gentle', tags: ['adjective', 'calm'] },
+          { text: 'silver', tags: ['color'] },
+          { text: 'planet', tags: ['space'] },
+          { text: 'harbor', tags: ['place', 'travel'] },
+          { text: 'garden', tags: ['nature', 'daily'] },
+          { text: 'moment', tags: ['time'] },
+          { text: 'whisper', tags: ['sound'] },
+          { text: 'rocket', tags: ['space', 'technology'] },
+          { text: 'canyon', tags: ['nature'] },
+          { text: 'sunset', tags: ['nature', 'time'] },
+          { text: 'wonder', tags: ['emotion'] },
+          { text: 'packet', tags: ['object'] },
+          { text: 'bridge', tags: ['place', 'structure'] },
+          { text: 'lantern', tags: ['object', 'light'] },
+          { text: 'meadow', tags: ['nature'] },
+          { text: 'compass', tags: ['tool', 'travel'] },
+          { text: 'thunder', tags: ['weather'] },
+          { text: 'pebble', tags: ['nature', 'small'] },
+          { text: 'horizon', tags: ['nature', 'view'] },
+          { text: 'ember', tags: ['fire'] },
+          { text: 'riverbank', tags: ['nature'] },
+          { text: 'skylark', tags: ['animal'] },
+          { text: 'lighthouse', tags: ['place', 'light'] },
+          { text: 'voyage', tags: ['travel'] },
+          { text: 'harvest', tags: ['season'] }
+        ],
+        'nl-NL': [
+          { text: 'janneke', tags: ['natuur', 'makkelijk'] },
+          { text: 'vanavond', tags: ['bijwoord'] },
+          { text: 'over', tags: ['kleur'] },
+          { text: 'bloemetjes', tags: ['ruimte'] },
+          { text: 'vroeg', tags: ['plaats', 'reizen'] },
+          { text: 'halen', tags: ['natuur'] },
+          { text: 'knietjes', tags: ['tijd'] },
+          { text: 'blijf', tags: ['geluid'] },
+          { text: 'jongen', tags: ['ruimte', 'techniek'] },
+          { text: 'oude', tags: ['natuur'] },
+          { text: 'verdrietig', tags: ['natuur', 'tijd'] },
+          { text: 'pas', tags: ['gevoel'] },
+          { text: 'liggen', tags: ['object'] },
+          { text: 'horen', tags: ['plaats', 'structuur'] },
+          { text: 'staat', tags: ['licht'] },
+          { text: 'doet', tags: ['natuur'] },
+          { text: 'vijf', tags: ['gereedschap', 'reizen'] },
+          { text: 'niets', tags: ['weer'] },
+          { text: 'wekker', tags: ['natuur', 'klein'] },
+          { text: 'gejokt', tags: ['natuur'] },
+          { text: 'thee', tags: ['vuur'] },
+          { text: 'roept', tags: ['natuur'] },
+          { text: 'gaan', tags: ['dier'] },
+          { text: 'zegt', tags: ['plaats', 'licht'] },
+          { text: 'stiekem', tags: ['reizen'] },
+          { text: 'oortje', tags: ['seizoen'] },
+          { text: 'naar', tags: ['tijd'] },
+          { text: 'kunt', tags: ['natuur'] },
+          { text: 'volgende', tags: ['tijd'] },
+          { text: 'goed', tags: ['natuur', 'water'] },
+          { text: 'proberen', tags: ['natuur', 'licht'] },
+          { text: 'ertegenaan', tags: ['object'] },
+          { text: 'daar', tags: ['gevoel'] },
+          { text: 'kinderen', tags: ['natuur'] },
+          { text: 'moeder', tags: ['object', 'geluid'] },
+          { text: 'mama', tags: ['object'] },
+          { text: 'hoor', tags: ['licht'] },
+          { text: 'belooft', tags: ['dier'] },
+          { text: 'waar', tags: ['textuur'] },
+          { text: 'zeven', tags: ['feest', 'plant'] },
+          { text: 'raam', tags: ['weer'] },
+          { text: 'morgen', tags: ['tijd', 'gevoel'] },
+          { text: 'gehouden', tags: ['weer', 'seizoen'] },
+          { text: 'geschrokken', tags: ['plaats', 'structuur'] },
+          { text: 'moeten', tags: ['natuur', 'landbouw'] },
+          { text: 'hebben', tags: ['licht'] },
+          { text: 'worden', tags: ['natuur', 'ochtend'] },
+          { text: 'morgens', tags: ['ruimte'] }
+        ]
+      },
+      expressions: {
+        'en-US': [
+          { text: 'Trust your instincts', tags: ['motivation'] },
+          { text: 'Follow that light', tags: ['direction'] },
+          { text: 'Speak with kindness', tags: ['kindness'] },
+          { text: 'Enjoy the journey', tags: ['travel', 'mindfulness'] },
+          { text: 'Guard every promise', tags: ['values'] },
+          { text: 'Share the wonder', tags: ['curiosity'] },
+          { text: 'Carry hope forward', tags: ['optimism'] },
+          { text: 'Choose calm breaths', tags: ['mindfulness'] },
+          { text: 'Celebrate small wins', tags: ['growth'] },
+          { text: 'Listen for courage', tags: ['encouragement'] },
+          { text: 'Keep curiosity open', tags: ['learning'] }
+        ],
+        'nl-NL': [
+          { text: 'Mooi, zegt buurman', tags: ['motivatie'] },
+          { text: 'Jip en Janneke gaan op hun knietjes liggen', tags: ['vreugde'] },
+          { text: 'Sneeuwklokjes luiden nooit', tags: ['aandacht'] },
+          { text: 'Maar o jee', tags: ['vriendelijkheid'] },
+          { text: 'Te laat, zegt Janneke boos', tags: ['samen'] },
+          { text: 'En dan gaat ze naar Jip z\'n huis', tags: ['creativiteit'] },
+          { text: 'Nee hoor', tags: ['mindfulness'] },
+          { text: 'Dag kinderen, zegt hij', tags: ['zelfvertrouwen'] },
+          { text: 'Je moet het\'s morgens vroeg proberen, zegt buurman', tags: ['groei'] },
+          { text: 'Maar ze horen niets', tags: ['leren'] },
+          { text: 'De oude buurman kijkt over de heg', tags: ['zorg'] },
+          { text: 'Hij is al half aangekleed', tags: ['rust'] },
+          { text: 'Heel vroeg', tags: ['vriendelijkheid'] },
+          { text: 'die net thee zet', tags: ['samenwerking'] },
+          { text: 'Dan luiden de sneeuwklokjes', tags: ['inspiratie'] },
+          { text: 'Daar komt Jip', tags: ['blijheid'] },
+          { text: 'daar zijn de sneeuwklokjes', tags: ['nieuwsgierigheid'] },
+          { text: 'blijf maar lekker in je bed', tags: ['begrip'] },
+          { text: 'Dan moet je goed luisteren', tags: ['mindset'] },
+          { text: 'Ja, zegt Jip verdrietig', tags: ['rust', 'beeldspraak'] }
+        ]
+      },
+      sentences: {
+        'en-US': [
+          { text: 'Every morning brings a choice', tags: ['routine', 'mindfulness'] },
+          { text: 'Learning together builds lasting friendships', tags: ['community', 'learning'] },
+          { text: 'Practice patience for enduring growth', tags: ['growth'] },
+          { text: 'Small acts create brighter days', tags: ['kindness'] },
+          { text: 'Caring words encourage brave steps', tags: ['encouragement'] },
+          { text: 'Curiosity opens unexpected doors', tags: ['curiosity'] },
+          { text: 'Gentle focus leads to steady progress', tags: ['focus'] },
+          { text: 'Sharing stories nurtures community', tags: ['community'] },
+          { text: 'Listening deeply invites understanding', tags: ['empathy'] },
+          { text: 'Kind routines guide confident learners', tags: ['confidence'] }
+        ],
+        'nl-NL': [
+          { text: 'Kijk, daar staat de buurman.', tags: ['routine'] },
+          { text: 'Heel vroeg, om vijf uur.', tags: ['gemeenschap'] },
+          { text: 'Dan moet je goed luisteren.', tags: ['groei'] },
+          { text: 'Te laat, zegt Janneke boos.', tags: ['vriendelijkheid'] },
+          { text: 'Hij is al half aangekleed.', tags: ['mindfulness'] },
+          { text: 'Maar ze horen niets.', tags: ['nieuwsgierigheid'] },
+          { text: 'En hij komt gauw naar buiten.', tags: ['focus'] },
+          { text: 'Dag kinderen, zegt hij.', tags: ['gemeenschap'] },
+          { text: 'De oude buurman kijkt over de heg.', tags: ['empathie'] },
+          { text: 'We hebben sneeuwklokjes.', tags: ['vertrouwen'] },
+          { text: 'Mama, zegt Jip, mag ik vanavond de wekker?', tags: ['geduld'] },
+          { text: 'De buurman heeft je voor de gek gehouden.', tags: ['muziek', 'vreugde'] },
+          { text: 'Nee hoor, blijf maar lekker in je bed.', tags: ['leren'] },
+          { text: 'Maar ze gaan het morgen nog eens proberen.', tags: ['vriendelijkheid'] },
+          { text: 'Ze weten niet of de buurman gejokt heeft.', tags: ['metaforisch', 'groei'] }
+        ]
+      }
+    };
+    let poolData = clonePoolData(defaultPoolData);
+    let poolDataReady = false;
+    let poolLoadPromise = null;
+
+    function clonePoolData(source){
+      return JSON.parse(JSON.stringify(source || {}));
+    }
+
+    function sanitizeEntry(entry){
+      if (!entry) return null;
+      if (typeof entry === 'string'){
+        return { text: entry.trim(), tags: [] };
+      }
+      const text = (entry.text || '').toString().trim();
+      if (!text) return null;
+      const tags = Array.isArray(entry.tags)
+        ? entry.tags.map(tag => (typeof tag === 'string' ? tag.trim() : '')).filter(Boolean)
+        : [];
+      return { text, tags };
+    }
+
+    function normalizeEntryList(list){
+      if (!Array.isArray(list)) return [];
+      return list.map(sanitizeEntry).filter(Boolean);
+    }
+
+    function mergePoolData(base, incoming){
+      const result = clonePoolData(base);
+      if (!incoming) return result;
+      ['words', 'expressions', 'sentences'].forEach(section => {
+        const incomingSection = incoming[section];
+        if (!incomingSection) return;
+        if (!result[section]) result[section] = {};
+        Object.keys(incomingSection).forEach(lang => {
+          const normalized = normalizeEntryList(incomingSection[lang]);
+          if (!normalized.length) return;
+          result[section][lang] = normalized;
+        });
+      });
+      return result;
+    }
+
+    async function ensurePoolData(){
+      if (poolDataReady) return poolData;
+      if (poolLoadPromise) return poolLoadPromise;
+      poolLoadPromise = (async () => {
+        try{
+          poolData = clonePoolData(defaultPoolData);
+        } catch (error) {
+          console.warn('Using bundled pools:', error);
+          poolData = clonePoolData(defaultPoolData);
+        } finally {
+          poolDataReady = true;
+          poolLoadPromise = null;
+        }
+        return poolData;
+      })();
+      return poolLoadPromise;
+    }
+
+    function getPoolSection(poolType){
+      return poolData[poolType] || {};
+    }
+
+    function pickPoolEntries(poolType, lang, count){
+      const section = getPoolSection(poolType);
+      const fallback = section['en-US'] || [];
+      const localized = section[lang] && section[lang].length ? section[lang] : fallback;
+      const source = [...localized];
+      const chosen = [];
+      while (chosen.length < count && source.length){
+        const index = Math.floor(Math.random() * source.length);
+        chosen.push(source.splice(index, 1)[0]);
+      }
+      return chosen;
+    }
+
+    function entryToText(item){
+      if (!item) return '';
+      if (typeof item === 'string') return item;
+      return (item.text || '').toString();
+    }
+
+    function getPoolItems(poolType, lang, count){
+      return pickPoolEntries(poolType, lang, count)
+        .map(entryToText)
+        .filter(Boolean);
+    }
+
+    const normalizeLang = (value) => {
+      return (value || '').toLowerCase().startsWith('nl') ? 'nl-NL' : 'en-US';
+    };
+
+    function currentLang(){
+      return normalizeLang(languageSelect.value);
+    }
+
+    function applyLanguage(){
+      const lang = currentLang();
+      const dict = translations[lang] || translations['en-US'];
+      document.documentElement.lang = lang.startsWith('nl') ? 'nl' : 'en';
+      titleEl.textContent = dict.title;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (dict[key]) el.textContent = dict[key];
+      });
+      if (lastChoiceKey){
+        const label = dict[lastChoiceKey] || '';
+        selection.textContent = label ? `${dict.selectionPrefix}: ${label}` : '';
+      } else {
+        selection.textContent = '';
+      }
+    }
+
+    languageSelect.value = normalizeLang(navigator.language || 'en-US');
+    applyLanguage();
+    ensurePoolData();
+
+    const speech = 'speechSynthesis' in window ? window.speechSynthesis : null;
+    const speechState = {
+      voices: [],
+      loaded: false,
+      preferredLang: currentLang(),
+      lastVoiceKey: ''
+    };
+
+    languageSelect.addEventListener('change', () => {
+      applyLanguage();
+      speechState.preferredLang = currentLang();
+      if (speech) speech.cancel();
+    });
+
+    function announce(choiceKey){
+      const lang = currentLang();
+      const dict = translations[lang] || translations['en-US'];
+      lastChoiceKey = choiceKey;
+      const label = dict[choiceKey] || '';
+      selection.textContent = label ? `${dict.selectionPrefix}: ${label}` : '';
+      console.log('Wybrana opcja:', label || choiceKey);
+    }
+
+    // ---------------------------
+    // SPEECH (ONLY PART MODIFIED)
+    // ---------------------------
+
+    // Target duration depends ONLY on number of letters in the FULL text:
+    // (keeps your existing constants and behavior, just makes it enforceable)
+    function calculateWordDwellMs(text){
+      const sanitized = (text || '').toString().trim();
+      return BASE_WORD_TIME + sanitized.length * MS_PER_CHARACTER;
+    }
+
+    function sleep(ms){
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function loadVoices(){
+      if (!speech) return [];
+      const existing = speech.getVoices();
+      if (existing.length) return existing;
+      return new Promise(resolve => {
+        const handle = () => {
+          speech.removeEventListener('voiceschanged', handle);
+          resolve(speech.getVoices());
+        };
+        speech.addEventListener('voiceschanged', handle, { once: true });
+        setTimeout(() => resolve(speech.getVoices()), 750);
+      });
+    }
+
+    async function ensureVoices(){
+      if (speechState.loaded) return speechState.voices;
+      speechState.voices = await loadVoices();
+      speechState.loaded = true;
+      return speechState.voices;
+    }
+
+    // If the same voice name exists on all machines, put it here.
+    // If not, we fall back to a deterministic pick.
+    const PREFERRED_VOICE_NAME = {
+      'en-US': '',
+      'nl-NL': 'Microsoft Hanna Desktop - Dutch (Netherlands)'
+    };
+
+    function pickVoice(lang){
+      if (!speechState.voices.length) return null;
+
+      const preferredName = (PREFERRED_VOICE_NAME[lang] || '').trim();
+      if (preferredName){
+        const exact = speechState.voices.find(v => v && v.name === preferredName);
+        if (exact) return exact;
+      }
+
+      const base = (lang.split('-')[0] || '').toLowerCase();
+
+      // Deterministic selection:
+      // 1) language match / startsWith match
+      // 2) prefer localService voices
+      // 3) stable sort by name
+      const candidates = speechState.voices
+        .filter(v => v && v.lang)
+        .filter(v => v.lang === lang || (v.lang && v.lang.toLowerCase().startsWith(base)))
+        .sort((a, b) => {
+          const la = a.localService ? 0 : 1;
+          const lb = b.localService ? 0 : 1;
+          if (la !== lb) return la - lb;
+          return (a.name || '').localeCompare((b.name || ''));
+        });
+
+      return candidates[0] || null;
+    }
+
+    function speakUtterance(text, lang, voice){
+      return new Promise((resolve) => {
+        if (!speech || !text){
+          resolve({ elapsedMs: 0, endedNaturally: true });
+          return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang;
+
+        // Normal pace. We keep rate at 1.0 for consistency and natural speech.
+        // We do NOT rely on rate to enforce duration; we enforce duration by waiting/padding.
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        if (voice) utterance.voice = voice;
+
+        let start = 0;
+        let settled = false;
+
+        const finish = (endedNaturally) => {
+          if (settled) return;
+          settled = true;
+          const end = performance.now();
+          resolve({ elapsedMs: start ? (end - start) : 0, endedNaturally });
+        };
+
+        utterance.onstart = () => { start = performance.now(); };
+        utterance.onend = () => finish(true);
+        utterance.onerror = () => finish(false);
+
+        speech.speak(utterance);
+      });
+    }
+
+    // Speak and ensure the *total* time spent on this text equals calculateWordDwellMs(text).
+    async function speakWord(text, lang){
+      if (!speech || !text) return;
+      await ensureVoices();
+
+      const voice = pickVoice(lang);
+
+      // Cancel any pending speech cleanly.
+      speech.cancel();
+      await sleep(30);
+
+      const targetMs = calculateWordDwellMs(text);
+
+      const startedAt = performance.now();
+      await speakUtterance(text, lang, voice);
+
+      // If the engine ended early/late, pad or do nothing so total time matches targetMs.
+      const elapsed = performance.now() - startedAt;
+      const remaining = targetMs - elapsed;
+      if (remaining > 0) await sleep(remaining);
+
+      // Safety: ensure we are not stuck speaking before next item
+      if (speech.speaking || speech.pending) speech.cancel();
+    }
+
+    // END SPEECH MODS
+    // ---------------------------
+
+    function showWordScreen(){
+      mainEl.setAttribute('hidden', '');
+      wordDisplayScreen.classList.add('active');
+      wordDisplayScreen.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideWordScreen(){
+      wordDisplayScreen.classList.remove('active');
+      wordDisplayScreen.setAttribute('aria-hidden', 'true');
+      wordDisplay.innerHTML = '&nbsp;';
+      mainEl.removeAttribute('hidden');
+    }
+
+    async function startWordSequence({ items = 3, choiceKey = 'tile.3words.value', poolType = 'words' } = {}){
+      if (wordSequenceRunning) return;
+      wordSequenceRunning = true;
+      announce(choiceKey);
+      const lang = currentLang();
+      await ensurePoolData();
+      let words = [];
+      if (poolType === 'expressions'){
+        words = getPoolItems('expressions', lang, items);
+      } else if (poolType === 'sentences'){
+        words = getPoolItems('sentences', lang, items);
+      } else {
+        words = getPoolItems('words', lang, items);
+      }
+      if (!words.length){
+        words = getPoolItems('words', lang, items);
+      }
+      showWordScreen();
+      try{
+        if (speech) speech.cancel();
+        for (const word of words){
+          wordDisplay.textContent = word;
+
+          // SPEECH: now speakWord enforces total duration based on letter count.
+          await speakWord(word, lang);
+
+          wordDisplay.innerHTML = '&nbsp;';
+          await sleep(WORD_ISI_MS);
+        }
+      } finally {
+        hideWordScreen();
+        wordSequenceRunning = false;
+      }
+    }
+
+    document.querySelectorAll('.tile').forEach(tile => {
+      const choice = tile.dataset.choice;
+      tile.addEventListener('click', () => {
+        if (choice === 'tile.3words.value'){
+          startWordSequence({ items: 3, choiceKey: 'tile.3words.value', poolType: 'words' });
+        } else if (choice === 'tile.5words.value'){
+          startWordSequence({ items: 5, choiceKey: 'tile.5words.value', poolType: 'words' });
+        } else if (choice === 'tile.expressions.value'){
+          startWordSequence({ items: 3, choiceKey: 'tile.expressions.value', poolType: 'expressions' });
+        } else if (choice === 'tile.sentences.value'){
+          startWordSequence({ items: 3, choiceKey: 'tile.sentences.value', poolType: 'sentences' });
+        } else {
+          announce(choice);
+        }
+      });
+      tile.addEventListener('keydown', (event) => {
+        if(event.key === 'Enter' || event.key === ' '){
+          event.preventDefault();
+          tile.click();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
