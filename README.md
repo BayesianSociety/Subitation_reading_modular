@@ -1,55 +1,190 @@
-# Subitation_reading# Subitation_reading_modular
 # Subitation_reading_modular
 
-From your project folder, run a local HTTP server and open the HTTP URL instead of file://.
+This setup is designed for your goal:
+- Transfer the project to another computer.
+- Keep editing `data/word-pools_jipjanneke.json`.
+- Run the app from Docker Desktop.
 
-  1. In terminal:
+The app entry file is:
+- `reading.html`
 
-  cd /home/postnl/AI_software/Subitation_reading_modular
-  python3 -m http.server 8000
+The JSON file used by the app is:
+- `data/word-pools_jipjanneke.json`
 
-  2. In browser, open:
+## Files prepared
 
-  - http://localhost:8000/reading.html
-  - (or http://127.0.0.1:8000/reading.html)
+These files are now in the project:
+- `docker-compose.yml` (runs Nginx and serves this folder)
+- `README.md` (full instructions)
 
-  3. Keep that terminal running while testing.
+## Prerequisites on each computer
 
-  Why this works: now the page and data/word-pools_jipjanneke.json are both served over http, so fetch is allowed.
+1. Install Docker Desktop.
+2. Start Docker Desktop and wait until it shows Docker is running.
+3. Open a terminal.
 
-  If port 8000 is busy, use another port:
+## Step-by-step: run on your current computer
 
-  python3 -m http.server 8080
+1. Go to the project folder:
 
-  then open http://localhost:8080/reading.html.
-  
-  
--------------------------------------------------------------------------------------------------------
-• Use Docker to serve the folder over HTTP (same reason as Python server: avoids file:// CORS).
+```bash
+cd /home/postnl/AI_software/Subitation_reading_modular
+```
 
-  Run directly with docker run
+2. Start the container:
 
-  1. From project dir:
+```bash
+docker compose up
+```
 
-  cd /home/postnl/AI_software/Subitation_reading_modular
-  docker run --rm -p 8000:8000 -v "$PWD":/site -w /site python:3.12-slim python -m http.server 8000
+3. Open the app in a browser:
 
-  2. Open:
-     http://localhost:8000/reading.html
+```text
+http://localhost:8080/reading.html
+```
 
-  If using Docker Desktop
+4. Keep the terminal running while you use the app.
 
-  - Same command works from terminal on your host.
-  - You can also start/stop the container in Docker Desktop UI after it appears.
+5. To stop the app, press:
 
-  Alternative with Nginx
+```text
+Ctrl + C
+```
 
-  docker run --rm -p 8080:80 -v "$PWD":/usr/share/nginx/html:ro nginx:alpine
+6. To stop and remove the container cleanly:
 
-  Open:
-  http://localhost:8080/reading.html
+```bash
+docker compose down
+```
 
-  Notes:
+## Step-by-step: edit JSON and see changes
 
-  - Keep container running while using the app.
-  - -v "$PWD":... mounts your current files, so edits are reflected immediately.
+1. Open this file in your editor:
+
+```text
+/home/postnl/AI_software/Subitation_reading_modular/data/word-pools_jipjanneke.json
+```
+
+2. Save your changes.
+
+3. Refresh the browser page:
+
+```text
+http://localhost:8080/reading.html
+```
+
+No image rebuild is needed because the folder is mounted into the container.
+
+## Step-by-step: transfer to another computer and keep editing
+
+Use one of these two transfer methods.
+
+### Method 1: transfer with Git (recommended)
+
+1. Push this project to your Git remote from the current computer.
+2. On the new computer, install Docker Desktop.
+3. Clone the repository on the new computer:
+
+```bash
+git clone <your-repository-url>
+```
+
+4. Enter the project folder:
+
+```bash
+cd Subitation_reading_modular
+```
+
+5. Start the app:
+
+```bash
+docker compose up
+```
+
+6. Open:
+
+```text
+http://localhost:8080/reading.html
+```
+
+7. Edit `data/word-pools_jipjanneke.json` on the new computer, save, and refresh browser.
+
+### Method 2: transfer by copying folder (USB/shared drive)
+
+1. Copy the entire project folder `Subitation_reading_modular` to the new computer.
+2. Install and start Docker Desktop on the new computer.
+3. Open terminal and enter the copied folder:
+
+```bash
+cd /path/to/Subitation_reading_modular
+```
+
+4. Start the app:
+
+```bash
+docker compose up
+```
+
+5. Open:
+
+```text
+http://localhost:8080/reading.html
+```
+
+6. Edit `data/word-pools_jipjanneke.json`, save, and refresh browser.
+
+## Useful Docker commands
+
+Start in background:
+
+```bash
+docker compose up -d
+```
+
+Show running containers:
+
+```bash
+docker compose ps
+```
+
+Show logs:
+
+```bash
+docker compose logs -f
+```
+
+Stop and remove container:
+
+```bash
+docker compose down
+```
+
+## Port change (if 8080 is busy)
+
+1. Open `docker-compose.yml`.
+2. Change:
+
+```yaml
+ports:
+  - "8080:80"
+```
+
+to:
+
+```yaml
+ports:
+  - "8090:80"
+```
+
+3. Restart:
+
+```bash
+docker compose down
+docker compose up
+```
+
+4. Open:
+
+```text
+http://localhost:8090/reading.html
+```

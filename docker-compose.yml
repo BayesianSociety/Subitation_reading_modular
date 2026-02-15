@@ -1,0 +1,9 @@
+services:
+  reading-app:
+    image: nginx:alpine
+    container_name: reading-app
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/usr/share/nginx/html:rw
+    restart: unless-stopped
